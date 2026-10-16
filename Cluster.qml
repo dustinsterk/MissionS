@@ -94,21 +94,21 @@ Item {
     // ---- far dials ----
     SideDial {
         id: fuelDial
-        x: 58-radius; y: 250-radius; z: 1
-        radius: 74
+        x: 68-radius; y: 226-radius; z: 1
+        radius: 64
         mode: cl.oMode; accent: cl.oAccent
         value: cl.fuel; minV: 0; maxV: 100
         startAng: 200; sweep: 140
-        labels: ["E", "", "F"]; steps: 8; majorEvery: 4; labelSize: 13
+        labels: []; steps: 8; majorEvery: 4; labelSize: 13
         hotFrom: 2
         valueText: cl.fuel.toFixed(0)+"%"; unitText: ""
-        valueSize: 30; valueX: -12; valueY: radius-6
+        valueSize: 28; valueX: -10; valueY: radius-12
         warn: cl.fuelWarn
         numberInNormalOnly: true
         numFont: numfont.name; labelFont: labfont.name
         // pump icon
         Canvas {
-            x: 80; y: 26; width: 22; height: 26
+            x: 44; y: 16; width: 22; height: 26
             property color c: cl.fuelWarn ? "#ff2d2d" : "#d0d6dd"
             onCChanged: requestPaint()
             onPaint: { var g=getContext("2d"); g.reset(); g.fillStyle=c; g.strokeStyle=c; g.lineWidth=2
@@ -118,21 +118,21 @@ Item {
     }
     SideDial {
         id: coolDial
-        x: 742-radius; y: 250-radius; z: 1
-        radius: 74
+        x: 732-radius; y: 226-radius; z: 1
+        radius: 64
         mode: cl.oMode; accent: cl.oAccent
         value: cl.coolant; minV: cl.coolmin; maxV: cl.coolmax
-        startAng: 20; sweep: 140
-        labels: [String(cl.coolmax.toFixed(0)), "", String(cl.coolmin.toFixed(0))]
+        startAng: 160; sweep: -140      // mirrored: cold at the bottom, hot at the top
+        labels: []
         steps: 8; majorEvery: 4; labelSize: 13
         hotFrom: 2
         valueText: cl.coolant.toFixed(0)+"°"; unitText: ""
-        valueSize: 30; valueX: 12; valueY: radius-6
+        valueSize: 28; valueX: 10; valueY: radius-12
         warn: cl.coolWarn
         numFont: numfont.name; labelFont: labfont.name
         // thermometer icon
         Canvas {
-            x: 46; y: 24; width: 22; height: 26
+            x: 62; y: 16; width: 22; height: 26
             property color c: cl.coolWarn ? "#ff2d2d" : "#d0d6dd"
             onCChanged: requestPaint()
             onPaint: { var g=getContext("2d"); g.reset(); g.fillStyle=c; g.strokeStyle=c; g.lineWidth=2
@@ -148,10 +148,11 @@ Item {
         radius: 108
         mode: cl.oMode; accent: cl.oAccent
         value: cl.speed; minV: 0; maxV: cl.speedmax
+        startAng: 190; sweep: 180         // only the part not hidden by the rev counter
         labels: [0,1,2,3,4,5,6].map(function(i){ return String(Math.round(cl.speedmax*i/6)) })
         steps: 24; majorEvery: 4; labelSize: 15
         valueText: Math.round(Math.max(0, cl.speed)).toFixed(0); unitText: cl.speedunit
-        valueSize: 50; valueX: -24
+        valueSize: 46; valueX: -14
         numFont: numfont.name; labelFont: labfont.name
         // dot above the number in Track
         Rectangle {
@@ -167,10 +168,11 @@ Item {
         radius: 108
         mode: cl.oMode; accent: cl.oAccent
         value: cl.oilp; minV: 0; maxV: cl.oilmax
+        startAng: 170; sweep: -180        // mirror of the speedometer
         labels: [0,1,2,3,4].map(function(i){ return String(Math.round(cl.oilmax*i/4)) })
         steps: 16; majorEvery: 4; labelSize: 15
         valueText: cl.oilp.toFixed(cl.oildec); unitText: cl.oilunit
-        valueSize: 50; valueX: 20
+        valueSize: 46; valueX: 14
         warn: cl.oilWarn
         numFont: numfont.name; labelFont: labfont.name
         // oil can icon

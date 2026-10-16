@@ -27,7 +27,7 @@ Canvas {
         c.lineCap=cap
         for(var i=0;i<count;i++){
             c.beginPath()
-            c.arc(radius, radius, arcRadius-i*spacing, rad(startAng+sweep*fromF), rad(startAng+sweep*toF), false)
+            c.arc(radius, radius, arcRadius-i*spacing, rad(startAng+sweep*fromF), rad(startAng+sweep*toF), sweep<0)
             c.stroke()
         }
     }
