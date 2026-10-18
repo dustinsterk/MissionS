@@ -40,18 +40,21 @@ Item {
 
     DialFace { radius: d.radius; tint: d.accent; tintOpacity: 0.07 }
 
-    // Sport: thin ring at the edge
-    ArcRing {
-        radius: d.radius; arcRadius: d.radius-11; lineWidth: 3
-        startAng: d.startAng; sweep: d.sweep; strokeColor: "#ff2d2d"
+    // Sport: thin ring at the edge; Track: heavy ring. Pre-rendered PNGs
+    // (tools/make_arcs.py) so they are GPU textures, not CPU-drawn Canvas.
+    property string arcName: ""
+    Image {
+        anchors.fill: parent
+        source: d.arcName!=="" ? "arcs/"+d.arcName+"_sport.png" : ""
+        smooth: true
         opacity: d.mode===1 ? 0.95 : 0
         visible: opacity>0.01
         Behavior on opacity { NumberAnimation { duration: 400 } }
     }
-    // Track: heavy ring
-    ArcRing {
-        radius: d.radius; arcRadius: d.radius-14; lineWidth: 7
-        startAng: d.startAng; sweep: d.sweep; strokeColor: "#ff4d1c"; cap: "round"
+    Image {
+        anchors.fill: parent
+        source: d.arcName!=="" ? "arcs/"+d.arcName+"_track.png" : ""
+        smooth: true
         opacity: d.mode===2 ? 1 : 0
         visible: opacity>0.01
         Behavior on opacity { NumberAnimation { duration: 400 } }
@@ -102,7 +105,6 @@ Item {
         color: d.warn ? (blink.on ? "#ff2d2d" : "#ffffff") : "#ffffff"
         font.family: d.numFont
         font.pixelSize: d.valueSize
-        font.bold: true
         opacity: (d.numberInNormalOnly && d.mode!==0) ? 0 : 1
         Behavior on opacity { NumberAnimation { duration: 400 } }
     }

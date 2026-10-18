@@ -32,7 +32,8 @@ Item {
     height: 480
 
     // ---- live data ----
-    property int udp_message: rpmtest.udp_packetdata
+    property var d: (typeof rpmtest !== 'undefined') ? rpmtest : null
+    property int udp_message: d ? d.udp_packetdata : 0
     property bool udp_up: udp_message&0x01
     property bool udp_down: udp_message&0x02
     property bool udp_left: udp_message&0x04
@@ -62,8 +63,8 @@ Item {
 
     property bool settings_on_off: false
     property bool menu_on_off: rpmtest.settings_on_offdata&0x02
-    onSettings_on_offChanged: { if(settings_on_off) rpmtest.settings_on_offdata=rpmtest.settings_on_offdata|0x01
-                                else rpmtest.settings_on_offdata=rpmtest.settings_on_offdata&~0x01 }
+    onSettings_on_offChanged: { try { if(settings_on_off) rpmtest.settings_on_offdata=rpmtest.settings_on_offdata|0x01
+                                      else rpmtest.settings_on_offdata=rpmtest.settings_on_offdata&~0x01 } catch(e) {} }
 
     // ---- display values ----
     property real speedDisp: speedunits===1 ? speedRaw*0.621371 : speedRaw
@@ -209,10 +210,8 @@ Item {
                            font.pixelSize:22; font.family: basicfont.name }
                     Column { visible: sel && it.type!=="act"; anchors.right: parent.right; anchors.rightMargin:12; anchors.verticalCenter: parent.verticalCenter; spacing:4
                         Repeater { model: 2
-                            Canvas { width:14; height:8; property bool up: index===0
-                                onPaint: { var c=getContext("2d"); c.reset(); c.fillStyle="#ffd75e"; c.beginPath()
-                                           if(up){c.moveTo(0,8);c.lineTo(7,0);c.lineTo(14,8)} else {c.moveTo(0,0);c.lineTo(7,8);c.lineTo(14,0)}
-                                           c.closePath(); c.fill() } } }
+                            Item { width:14; height:8; clip: true; property bool up: index===0
+                                Rectangle { width:10; height:10; x:2; y: parent.up ? 3 : -5; rotation:45; color:"#ffd75e"; antialiasing: true } } }
                     }
                 }
             }
@@ -317,13 +316,24 @@ Item {
         readConfig()           // missing file or keys -> defaults
         applyConfig()
         if(!cfgKeyValue) save_settings()   // first run, or migrate an old numbers-only file
-        realtimedata.DISABLE_WARNING_OVERLAY="NO_THIS_IS_ON"
+        // Tell the firmware the warnings are handled here (strip at the bottom,
+        // turn signals at the top), so it does NOT draw its own warning-light
+        // bar over the dash. Same call as GTDash; guarded because the desktop
+        // simulator doesn't have the property.
+        if (root.d) { try { root.d.DISABLE_WARNING_OVERLAY = "YES_WARNINGS_HANDLED_LOCALLY"; } catch (e) {} }
     }
 
     ///////////////////////////////
     // joystick (same bits as RaceX)
     ///////////////////////////////
-    property int inputs: rpmtest.inputsdata
+    property int inputs: d ? d.inputsdata : 0
+    // Some IC7 backends update inputsdata without a change signal (see the
+    // GTDash notes), so also poll it every 50 ms. The D-pad handlers below are
+    // edge-triggered on the derived bools, so polling never double-acts.
+    Timer {
+        interval: 50; repeat: true; running: true
+        onTriggered: { if(root.d){ root.inputs=root.d.inputsdata; root.udp_message=root.d.udp_packetdata } }
+    }
     property bool up_joystick:    inputs&0x20 || root.udp_up
     property bool down_joystick:  inputs&0x2000 || root.udp_down
     property bool left_joystick:  inputs&0x20000000 || root.udp_left
@@ -372,6 +382,9 @@ Item {
         coolWarn: root.coolDisp>root.waterhigh
         oilWarn: root.rpm>400 && root.oilDisp<root.oilplow
         fuelWarn: root.fuelRaw<root.fuellow
+        inputs: root.inputs
+        canAsciiRaw: (root.d && root.d.canasciidata !== undefined) ? root.d.canasciidata : ""
+        holdLabel: root.settings_on_off
         odometer: root.speedunits===1 ? root.odometerRaw*0.621371/10 : root.odometerRaw/10
         trip: root.speedunits===1 ? root.tripRaw*0.621371 : root.tripRaw
 
