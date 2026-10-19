@@ -545,7 +545,7 @@ Item {
     // ---- bottom line ----
     Text {
         x: 18; y: 448
-        text: "ODO " + Math.round(cl.odometer)
+        text: "ODO " + Math.floor(cl.odometer)   // whole units, never rounded up (like the other GARW dashes)
         color: "#8c939c"; font.family: labfont.name; font.pixelSize: 18
     }
     Text {

@@ -44,8 +44,18 @@ Item {
     property real oilpressureRaw: rpmtest.oilpressuredata // bar
     property real fuelRaw: rpmtest.fueldata              // %
     property int  gearpos: rpmtest.geardata
-    property real odometerRaw: rpmtest.odometer0data
-    property real tripRaw: rpmtest.tripmileage0data
+    // ODO / trip: read by polling (see the input poll below) instead of a
+    // plain binding. On the unit the odometer can be loaded/updated without a
+    // change signal, which left the binding stuck on its first value (0) --
+    // other GARW dashes only refreshed it as a side effect of other bindings.
+    // Number() also copes with the value arriving as text.
+    property real odometerRaw: 0
+    property real tripRaw: 0
+    function readDistances(){
+        if(!root.d) return
+        var o=Number(root.d.odometer0data);    if(!isNaN(o) && o!==odometerRaw) odometerRaw=o
+        var t=Number(root.d.tripmileage0data); if(!isNaN(t) && t!==tripRaw) tripRaw=t
+    }
 
     // ---- settings ----
     property int  drivemode: 0
@@ -313,6 +323,7 @@ Item {
         cfgKeyValue=true
     }
     Component.onCompleted: {
+        readDistances()
         readConfig()           // missing file or keys -> defaults
         applyConfig()
         if(!cfgKeyValue) save_settings()   // first run, or migrate an old numbers-only file
@@ -327,12 +338,14 @@ Item {
     // joystick (same bits as RaceX)
     ///////////////////////////////
     property int inputs: d ? d.inputsdata : 0
+    property int pollCount: 0
     // Some IC7 backends update inputsdata without a change signal (see the
     // GTDash notes), so also poll it every 50 ms. The D-pad handlers below are
     // edge-triggered on the derived bools, so polling never double-acts.
     Timer {
         interval: 50; repeat: true; running: true
-        onTriggered: { if(root.d){ root.inputs=root.d.inputsdata; root.udp_message=root.d.udp_packetdata } }
+        onTriggered: { if(root.d){ root.inputs=root.d.inputsdata; root.udp_message=root.d.udp_packetdata
+                                   if(++root.pollCount%10===0) root.readDistances() } }   // ODO/trip every 0.5 s
     }
     property bool up_joystick:    inputs&0x20 || root.udp_up
     property bool down_joystick:  inputs&0x2000 || root.udp_down
