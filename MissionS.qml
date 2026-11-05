@@ -24,6 +24,7 @@ import FileIO 1.0
 //   oilPressLow=1.0   oil pressure warning
 //   oilPressUnits=1   1 bar, 0 psi
 //   fuelLow=10        low fuel warning (%)
+//   fuelDamp=3        fuel slosh filter, 0 = raw ... 9 = heavy (GTDash filter)
 // An older file with one plain number per line (same order as above) is read
 // once and rewritten in this format.
 Item {
@@ -43,6 +44,11 @@ Item {
     property real watertempRaw: rpmtest.watertempdata    // C
     property real oilpressureRaw: rpmtest.oilpressuredata // bar
     property real fuelRaw: rpmtest.fueldata              // %
+    // fuel goes through the GTDash slosh filter (FuelFilter.qml): trimmed mean
+    // of the middle ~40 % of a 250 ms sample window, then a speed-limited glide.
+    property int  fueldamp: 3                            // 0 = raw ... 9 = heavy
+    FuelFilter { id: fuelFilter; raw: root.fuelRaw; damp: root.fueldamp }
+    readonly property real fuelLevel: fuelFilter.level
     property int  gearpos: rpmtest.geardata
     // ODO / trip: read by polling (see the input poll below) instead of a
     // plain binding. On the unit the odometer can be loaded/updated without a
@@ -106,6 +112,7 @@ Item {
         {group:"Oil pressure", label:"Low warning", key:"oilplow", type:"num", step:function(){return root.oilpunits===1?0.1:1}, min:0, max:function(){return root.oilpunits===1?10:150}, dec:function(){return root.oilpunits===1?1:0}, fast:5, unit:oilUnit, help:"Oil pressure flashes red below this (only with the engine running)."},
         {group:"Oil pressure", label:"Units",       key:"oilpunits", type:"opt", opts:[[1,"bar"],[0,"psi"]], help:"Oil pressure units."},
         {group:"Fuel",        label:"Low warning",  key:"fuellow", type:"num", step:1, min:0, max:50, dec:0, unit:" %", help:"Fuel flashes red below this."},
+        {group:"Fuel",        label:"Damping",      key:"fueldamp", type:"num", step:1, min:0, max:9, dec:0, help:"Smooths fuel slosh: 0 = raw, 1 = light (~1.5 s window) ... 9 = heavy (~7.5 s). Same filter as GTDash."},
         {group:"",            label:"Discard changes", type:"act", act:"discard", help:"Go back to the dial without saving; the last saved settings are restored."}
     ]
     property int cur: 0
@@ -265,7 +272,8 @@ Item {
         ["coolantUnits",  "waterunits"],
         ["oilPressLow",   "oilplow"],
         ["oilPressUnits", "oilpunits"],
-        ["fuelLow",       "fuellow"]
+        ["fuelLow",       "fuellow"],
+        ["fuelDamp",      "fueldamp"]
     ]
     property var cfgMap: ({})           // key -> value text, as last read or saved
     property bool cfgKeyValue: false    // the file on disk is already key=value
@@ -306,6 +314,7 @@ Item {
         root.oilpunits=cv("oilPressUnits", 1)===0 ? 0 : 1
         root.oilplow=cv("oilPressLow", root.oilpunits===1 ? 1.0 : 15)
         root.fuellow=cv("fuelLow", 10)
+        root.fueldamp=Math.max(0, Math.min(9, Math.round(cv("fuelDamp", 3))))
     }
     function save_settings(){
         var out="", map={}, i, k, v
@@ -391,10 +400,10 @@ Item {
         coolant: root.coolDisp
         coolmin: root.waterunits===1 ? 40 : 100
         coolmax: root.waterunits===1 ? 140 : 280
-        fuel: root.fuelRaw
+        fuel: root.fuelLevel
         coolWarn: root.coolDisp>root.waterhigh
         oilWarn: root.rpm>400 && root.oilDisp<root.oilplow
-        fuelWarn: root.fuelRaw<root.fuellow
+        fuelWarn: root.fuelLevel<root.fuellow
         inputs: root.inputs
         canAsciiRaw: (root.d && root.d.canasciidata !== undefined) ? root.d.canasciidata : ""
         holdLabel: root.settings_on_off
